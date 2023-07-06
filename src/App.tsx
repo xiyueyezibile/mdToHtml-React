@@ -1,8 +1,12 @@
+import { useState } from "react";
 import mdToHtml from "../utils/mdToHtml";
 import "./App.css";
 
 function App() {
-  return <>{mdToHtml("# 这是示范 ![wd](ssss)\n## 我是h2 **wdasd**")}</>;
+  const [value,setValue] = useState()
+  return <><textarea style={{width:"50vw",height:"400px"}} value={value} onChange={(e)=>{
+    setValue(e.target.value)
+  }}></textarea><br /> {value?mdToHtml(value):undefined}</>;
 }
 
 export default App;

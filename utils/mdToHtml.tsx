@@ -1,6 +1,10 @@
+import { ReactNode } from "react";
+
 const reg_xx = /\*\*(.+?)\*\*/;
 const reg_img = /!\[(.*)\]\((.+?)\)/;
-const reg_m = /^#+/;
+const reg_m = /^\#+/;
+const reg_ul = /^-\s+/;
+const reg_ol = /^\d+\.\s+/;
 interface ItemObject {
   type: "h1" | "h2" | "h3" | "h4" | "h5" | "strong" | "img";
   value: (ItemObject | string)[];
@@ -61,6 +65,26 @@ function readSTR(str: ItemObject | string): any {
         <h5>{readSTR(str.value[0])}</h5>
       </>
     );
+  } else if (str.type === "ul") {
+    return (
+      <>
+        <ul>
+          {str.value.map((item, index) => (
+            <li key={index}>{readSTR(item) as ReactNode}</li>
+          ))}
+        </ul>
+      </>
+    );
+  } else if (str.type === "ol") {
+    return (
+      <>
+        <ol>
+          {str.value.map((item, index) => (
+            <li key={index}>{readSTR(item) as ReactNode}</li>
+          ))}
+        </ol>
+      </>
+    );
   }
 }
 function readSTRArr(data: any[] | string): any {
@@ -74,11 +98,29 @@ function readSTRArr(data: any[] | string): any {
 }
 
 function judgeSTRArr(data: string[]): (ItemObject | string)[] {
-  return data.map((item) => {
-    return judgeSTR(item);
-  });
+  let beforeType = "";
+  let beforeIndex = 0;
+  let newdata = [];
+  for (let i = 0; i < data.length; i++) {
+    const dataItem = judgeSTR(data[i], beforeType);
+    if (beforeType === "ul" && dataItem[0].type === "li") {
+      newdata[beforeIndex][0].value.push(...dataItem[0].value);
+    } else if (beforeType === "ol" && dataItem[0].type === "li") {
+      newdata[beforeIndex][0].value.push(...dataItem[0].value);
+    } else {
+      beforeType = dataItem[0].type;
+      if (beforeType === "ul") {
+        beforeIndex = newdata.length;
+      } else if (beforeType === "ol") {
+        beforeIndex = newdata.length;
+      }
+      newdata.push(dataItem);
+    }
+  }
+  console.log(newdata);
+  return newdata;
 }
-function judgeSTR(str: string): any {
+function judgeSTR(str: string, beforeType?: string): any {
   const data: { type: string; value: any[] }[] = [];
 
   if (reg_m.test(str)) {
@@ -94,6 +136,26 @@ function judgeSTR(str: string): any {
       } else if (str.slice(0, i) === "##### ") {
         data.push({ type: "h5", value: [...judgeSTR(str.slice(i))] });
       }
+    }
+  } else if (reg_ul.test(str)) {
+    if (beforeType !== "ul") {
+      data.push({ type: "ul", value: judgeSTR(str.slice(2)) });
+    } else {
+      data.push({ type: "li", value: judgeSTR(str.slice(2)) });
+    }
+  } else if (reg_ol.test(str)) {
+    const matched = str.match(reg_ol) as RegExpMatchArray;
+
+    if (beforeType !== "ol") {
+      data.push({
+        type: "ol",
+        value: judgeSTR(str.slice(matched[0].length)),
+      });
+    } else {
+      data.push({
+        type: "li",
+        value: judgeSTR(str.slice(matched[0].length)),
+      });
     }
   }
   // 加粗判断
