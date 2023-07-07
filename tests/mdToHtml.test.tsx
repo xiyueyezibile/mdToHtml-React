@@ -89,6 +89,25 @@ test('测试code', () => {
     ]
   `);
 });
+test('测试a', () => {
+  const a = mdToHtml('qwrqw[asdas](qrqr)');
+  expect(a).toMatchInlineSnapshot(`
+    [
+      <React.Fragment>
+        <React.Fragment>
+          qwrqw
+          <a
+            href="qrqr"
+          >
+            asdas
+          </a>
+          
+        </React.Fragment>
+        <br />
+      </React.Fragment>,
+    ]
+  `);
+});
 test('测试嵌套', () => {
   const m = mdToHtml('# asda**fsf**qwr\n- a![asf](ccc)aaa');
   expect(m).toMatchInlineSnapshot(`

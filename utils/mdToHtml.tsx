@@ -6,8 +6,11 @@ const reg_m = /^\#+/;
 const reg_ul = /^-\s+/;
 const reg_ol = /^\d+\.\s+/;
 const reg_code = /`(.+?)`/;
+const reg_a = /\[(.*)\]\((.+?)\)/;
+type ItemObjectType = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'strong' | 'img' | 'ul' | 'ol' | 'li' | 'code' | 'a';
+
 interface ItemObject {
-  type: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'strong' | 'img' | 'ul' | 'ol' | 'li' | 'code';
+  type: ItemObjectType;
   value: (ItemObject | string)[];
 }
 function readSTR(str: ItemObject | string): any {
@@ -31,12 +34,20 @@ function readSTR(str: ItemObject | string): any {
       </>
     );
   } else if (str.type === 'img') {
-    console.log(str.value);
-
     return (
       <>
         {readSTR(str.value[0])}
         <img key={readSTR(str.value[2])} src={readSTR(str.value[2])} alt={readSTR(str.value[1])} />
+        {readSTR(str.value[3])}
+      </>
+    );
+  } else if (str.type === 'a') {
+    return (
+      <>
+        {readSTR(str.value[0])}
+        <a key={readSTR(str.value[2])} href={readSTR(str.value[2])}>
+          {readSTR(str.value[1])}
+        </a>
         {readSTR(str.value[3])}
       </>
     );
@@ -122,33 +133,38 @@ function judgeSTRArr(data: string[]): (ItemObject | string)[] {
       newdata.push(dataItem);
     }
   }
-  console.log(newdata);
   return newdata;
 }
-function judgeSTR(str: string, beforeType?: string): any {
+function judgeSTR(str: string, beforeType?: string, type?: ItemObjectType): any {
   const data: { type: string; value: any[] }[] = [];
 
   if (reg_m.test(str)) {
     for (let i = 0; i < str.length; i++) {
       if (str.slice(0, i) === '# ') {
-        data.push({ type: 'h1', value: [...judgeSTR(str.slice(i))] });
+        data.push({ type: 'h1', value: [...judgeSTR(str.slice(i), undefined, 'h1')] });
       } else if (str.slice(0, i) === '## ') {
-        data.push({ type: 'h2', value: [...judgeSTR(str.slice(i))] });
+        data.push({ type: 'h2', value: [...judgeSTR(str.slice(i), undefined, 'h2')] });
       } else if (str.slice(0, i) === '### ') {
-        data.push({ type: 'h3', value: [...judgeSTR(str.slice(i))] });
+        data.push({ type: 'h3', value: [...judgeSTR(str.slice(i), undefined, 'h3')] });
       } else if (str.slice(0, i) === '#### ') {
-        data.push({ type: 'h4', value: [...judgeSTR(str.slice(i))] });
+        data.push({ type: 'h4', value: [...judgeSTR(str.slice(i), undefined, 'h4')] });
       } else if (str.slice(0, i) === '##### ') {
-        data.push({ type: 'h5', value: [...judgeSTR(str.slice(i))] });
+        data.push({ type: 'h5', value: [...judgeSTR(str.slice(i), undefined, 'h5')] });
       }
     }
   } else if (reg_ul.test(str)) {
+    if (type === 'h1' || type === 'h2' || type === 'h3' || type === 'h4' || type === 'h5') {
+      return [str];
+    }
     if (beforeType !== 'ul') {
       data.push({ type: 'ul', value: judgeSTR(str.slice(2)) });
     } else {
       data.push({ type: 'li', value: judgeSTR(str.slice(2)) });
     }
   } else if (reg_ol.test(str)) {
+    if (type === 'h1' || type === 'h2' || type === 'h3' || type === 'h4' || type === 'h5') {
+      return [str];
+    }
     const matched = str.match(reg_ol) as RegExpMatchArray;
 
     if (beforeType !== 'ol') {
@@ -223,6 +239,27 @@ function judgeSTR(str: string, beforeType?: string): any {
       if (str.slice(i, i + 2) === '![') {
         data[data.length - 1].value = judgeSTR(str.slice(0, i));
         n = i + 2;
+        flag = 1;
+      }
+      if (str.slice(i, i + 2) === '](' && flag) {
+        data[data.length - 1].value = [...data[data.length - 1].value, str.slice(n, i)];
+        pre = i + 2;
+      }
+      if (pre !== 0 && str[i] == ')') {
+        data[data.length - 1].value.push(str.slice(pre, i));
+        data[data.length - 1].value.push(...judgeSTR(str.slice(i + 1)));
+      }
+      i++;
+    }
+  } else if (reg_a.test(str)) {
+    data.push({ type: 'a', value: [] });
+    let flag = 0;
+    let pre = 0;
+    let n = 0;
+    for (let i = 0; i < str.length; ) {
+      if (str[i] === '[') {
+        data[data.length - 1].value = judgeSTR(str.slice(0, i));
+        n = i + 1;
         flag = 1;
       }
       if (str.slice(i, i + 2) === '](' && flag) {
