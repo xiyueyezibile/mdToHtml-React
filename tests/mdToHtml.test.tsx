@@ -35,7 +35,7 @@ test('测试strong', () => {
   `);
 });
 test('测试无序列表和有序列表', () => {
-  const ul = mdToHtml('- asdcjk\n- qweqre');
+  const ul = mdToHtml('* asdcjk\n- qweqre');
   expect(ul).toMatchInlineSnapshot(`
     [
       <React.Fragment>

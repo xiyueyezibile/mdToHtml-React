@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 const reg_xx = /\*\*(.+?)\*\*/;
 const reg_img = /!\[(.*)\]\((.+?)\)/;
 const reg_m = /^\#+/;
-const reg_ul = /^-\s+/;
+const reg_ul = /^[-*]\s+/;
 const reg_ol = /^\d+\.\s+/;
 const reg_code = /`(.+?)`/;
 const reg_a = /\[(.*)\]\((.+?)\)/;
@@ -178,6 +178,28 @@ function judgeSTR(str: string, beforeType?: string, type?: ItemObjectType): any 
         value: judgeSTR(str.slice(matched[0].length))
       });
     }
+  } // 图片判断
+  else if (reg_img.test(str)) {
+    data.push({ type: 'img', value: [] });
+    let flag = 0;
+    let pre = 0;
+    let n = 0;
+    for (let i = 0; i < str.length; ) {
+      if (str.slice(i, i + 2) === '![') {
+        data[data.length - 1].value = judgeSTR(str.slice(0, i));
+        n = i + 2;
+        flag = 1;
+      }
+      if (str.slice(i, i + 2) === '](' && flag) {
+        data[data.length - 1].value = [...data[data.length - 1].value, str.slice(n, i)];
+        pre = i + 2;
+      }
+      if (pre !== 0 && str[i] == ')') {
+        data[data.length - 1].value.push(str.slice(pre, i));
+        data[data.length - 1].value.push(...judgeSTR(str.slice(i + 1)));
+      }
+      i++;
+    }
   } else if (reg_code.test(str)) {
     data.push({ type: 'code', value: [] });
     let flag = 0;
@@ -228,29 +250,6 @@ function judgeSTR(str: string, beforeType?: string, type?: ItemObjectType): any 
       }
       i++;
     }
-  }
-  // 图片判断
-  else if (reg_img.test(str)) {
-    data.push({ type: 'img', value: [] });
-    let flag = 0;
-    let pre = 0;
-    let n = 0;
-    for (let i = 0; i < str.length; ) {
-      if (str.slice(i, i + 2) === '![') {
-        data[data.length - 1].value = judgeSTR(str.slice(0, i));
-        n = i + 2;
-        flag = 1;
-      }
-      if (str.slice(i, i + 2) === '](' && flag) {
-        data[data.length - 1].value = [...data[data.length - 1].value, str.slice(n, i)];
-        pre = i + 2;
-      }
-      if (pre !== 0 && str[i] == ')') {
-        data[data.length - 1].value.push(str.slice(pre, i));
-        data[data.length - 1].value.push(...judgeSTR(str.slice(i + 1)));
-      }
-      i++;
-    }
   } else if (reg_a.test(str)) {
     data.push({ type: 'a', value: [] });
     let flag = 0;
@@ -275,9 +274,6 @@ function judgeSTR(str: string, beforeType?: string, type?: ItemObjectType): any 
   }
 
   if (data.length) {
-    // for (let i = 0; i < data.length; i++) {
-    //   data[i].value = judgeSTR(data[i].value);
-    // }
     return data;
   } else {
     return [str];
